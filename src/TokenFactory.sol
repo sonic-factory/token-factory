@@ -5,9 +5,18 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./SimpleToken.sol";
 
+/**
+ * @title Factory contract for Simple ERC20 Tokens
+ * @author Kristian
+ * @notice This contract clones a simple ERC20 token implementation.
+ * @dev Proxy implementation are Clones. Implementation is immutable and not upgradeable.
+ */
 contract TokenFactory is Ownable, Pausable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
 
     address public immutable tokenImplementation;
     address public treasury;
@@ -23,6 +32,12 @@ contract TokenFactory is Ownable, Pausable, ReentrancyGuard {
     error ZeroAddress();
     error IncorrectFee();
 
+    /**
+     * @notice Constructor arguments for the token factory.
+     * @param _tokenImplementation This is the address of the token to be cloned.
+     * @param _treasury The multi-sig or contract address where the fees are sent.
+     * @param _creationFee The amount to collect for every contract creation.
+    */
     constructor(
         address _tokenImplementation,
         address _treasury,
@@ -36,8 +51,10 @@ contract TokenFactory is Ownable, Pausable, ReentrancyGuard {
         creationFee = _creationFee;
     }
 
-    /*
-     * @notice This function is called by the UI to create a new token
+    receive() external payable {}
+
+    /**
+     * @notice This function is called to create a new token
      * @param name The name of the token
      * @param symbol The symbol of the token
      * @param initialSupply The initial supply of the token
@@ -78,6 +95,16 @@ contract TokenFactory is Ownable, Pausable, ReentrancyGuard {
         
         creationFee = _creationFee;
         emit CreationFeeUpdated(_creationFee);
+    }
+
+    /// @notice This function allows the owner to collect the contract balance.
+    function collectFees() external onlyOwner {
+        payable(owner()).transfer(address(this).balance);
+    }
+
+    /// @notice This function allows the owner to collect foreign tokens sent to the contract.
+    function collectTokens(address token) external onlyOwner {
+        IERC20(token).safeTransfer(owner(), IERC20(token).balanceOf(address(this)));
     }
 
     /// @notice This function allows the owner to pause the contract.
