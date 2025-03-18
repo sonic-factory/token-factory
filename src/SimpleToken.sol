@@ -11,7 +11,7 @@ contract SimpleToken is ERC20BurnableUpgradeable, OwnableUpgradeable {
         _disableInitializers();
     }
 
-    /*
+    /**
      * @notice This function is called by the TokenFactory contract to initialize the token
      * @param name The name of the token
      * @param symbol The symbol of the token
