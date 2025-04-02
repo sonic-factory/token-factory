@@ -11,11 +11,20 @@ contract Deploy is Script {
     function run() external {
 
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        deployer = vm.addr(deployerPrivateKey);
+        address deployer = vm.addr(deployerPrivateKey);
         
         vm.startBroadcast(deployerPrivateKey);
 
-        // Insert Deploy logic here.
+        SimpleToken simpleToken = new SimpleToken();
+
+        TokenFactory tokenFactory = new TokenFactory (
+            address(simpleToken),
+            deployer,
+            0
+        );
+
+        console.log("SimpleToken deployed at: ", address(simpleToken));
+        console.log("TokenFactory deployed at: ", address(tokenFactory));
 
         vm.stopBroadcast();
     }
