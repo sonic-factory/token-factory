@@ -99,12 +99,12 @@ contract TokenFactory is Ownable, Pausable, ReentrancyGuard {
 
     /// @notice This function allows the owner to collect the contract balance.
     function collectFees() external onlyOwner {
-        payable(owner()).transfer(address(this).balance);
+        payable(treasury).transfer(address(this).balance);
     }
 
     /// @notice This function allows the owner to collect foreign tokens sent to the contract.
     function collectTokens(address token) external onlyOwner {
-        IERC20(token).safeTransfer(owner(), IERC20(token).balanceOf(address(this)));
+        IERC20(token).safeTransfer(treasury, IERC20(token).balanceOf(address(this)));
     }
 
     /// @notice This function allows the owner to pause the contract.
