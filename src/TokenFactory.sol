@@ -25,6 +25,8 @@ contract TokenFactory is Ownable, Pausable, ReentrancyGuard {
     uint256 public creationFee;
     uint256 public tokenCounter;
 
+    mapping(uint256 tokenId => address tokenAddress) public IdToAddress;
+
     event TokenCreated(address token, address owner);
     event TreasuryUpdated(address treasury);
     event CreationFeeUpdated(uint256 creationFee);
@@ -49,6 +51,8 @@ contract TokenFactory is Ownable, Pausable, ReentrancyGuard {
         tokenImplementation = _tokenImplementation;
         treasury = _treasury;
         creationFee = _creationFee;
+
+        _pause();
     }
 
     receive() external payable {}
@@ -69,6 +73,8 @@ contract TokenFactory is Ownable, Pausable, ReentrancyGuard {
         if (developer == address(0)) revert ZeroAddress();
         if (msg.value != creationFee) revert IncorrectFee();
 
+        tokenCounter = tokenCounter + 1;
+
         address token = Clones.cloneDeterministic(
             tokenImplementation,
             keccak256(abi.encodePacked(name, symbol, initialSupply, developer))
@@ -77,7 +83,7 @@ contract TokenFactory is Ownable, Pausable, ReentrancyGuard {
         SimpleToken(token).initialize(name, symbol, initialSupply, msg.sender);
 
         tokens.push(token);
-        tokenCounter = tokenCounter + 1;
+        IdToAddress[tokenCounter] = token;
 
         emit TokenCreated(token, msg.sender);
     }
@@ -99,7 +105,8 @@ contract TokenFactory is Ownable, Pausable, ReentrancyGuard {
 
     /// @notice This function allows the owner to collect the contract balance.
     function collectFees() external onlyOwner {
-        payable(treasury).transfer(address(this).balance);
+        (bool success, ) = treasury.call{value: address(this).balance}("");
+        require(success, "TokenFactory: Failed to send Ether");
     }
 
     /// @notice This function allows the owner to collect foreign tokens sent to the contract.
@@ -120,5 +127,10 @@ contract TokenFactory is Ownable, Pausable, ReentrancyGuard {
     /// @notice This function allows the UI to get all the tokens created by the factory.
     function getTokens() external view returns (address[] memory) {
         return tokens;
+    }
+
+    /// @notice This function allows the UI to get a token address by its ID.
+    function getTokenById(uint256 tokenId) external view returns (address) {
+        return IdToAddress[tokenId];
     }
 }
